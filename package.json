@@ -1,22 +1,41 @@
 {
   "name": "codespaces-blank",
   "version": "1.0.0",
-  "main": "index.ts",
+  "main": "src/app.tsx",
   "scripts": {
-    "start": "expo start",
+    "start": "expo start --tunnel",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "clean": "git clean -xdf .cache .expo android ios node_modules",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix"
   },
   "dependencies": {
+    "@expo/metro-runtime": "~5.0.4",
+    "@typescript-eslint/eslint-plugin": "7.18.0",
+    "@typescript-eslint/parser": "7.18.0",
     "expo": "~53.0.20",
     "expo-status-bar": "~2.2.3",
     "react": "19.0.0",
-    "react-native": "0.79.5"
+    "react-dom": "19.0.0",
+    "react-native": "0.79.5",
+    "react-native-web": "^0.20.0",
+    "typescript-eslint": "^8.39.1",
+    "@expo/vector-icons": "^14.1.0",
+    "expo-image-picker": "~16.1.4"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
+    "@types/eslint": "^9.6.1",
     "@types/react": "~19.0.10",
+    "@typescript-eslint/eslint-plugin": "^8.39.1",
+    "@typescript-eslint/parser": "^8.39.1",
+    "eslint": "^9.0.0",
+    "eslint-config-expo": "~9.2.0",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
     "typescript": "~5.8.3"
   },
   "private": true
