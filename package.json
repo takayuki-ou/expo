@@ -1,7 +1,7 @@
 {
   "name": "codespaces-blank",
   "version": "1.0.0",
-  "main": "index.ts",
+  "main": "src/app.tsx",
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
