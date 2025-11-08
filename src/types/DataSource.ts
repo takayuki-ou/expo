@@ -19,10 +19,17 @@ export interface DataPoint {
  */
 export interface DataSourceConfig {
   type: DataSourceType;
-  apiKey?: string;
-  databaseId?: string;
-  // その他の設定項目
-  [key: string]: any;
+  name?: string;
+}
+
+/**
+ * Notion Internal Integration設定
+ * Internal Integrationは個人のワークスペースでのみ使用可能
+ */
+export interface NotionInternalIntegrationConfig extends DataSourceConfig {
+  type: DataSourceType.NOTION;
+  integrationToken: string; // Internal Integration Token
+  databaseId: string;
 }
 
 /**

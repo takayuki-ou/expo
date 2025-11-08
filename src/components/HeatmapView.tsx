@@ -1,4 +1,4 @@
-import { type FC, useMemo } from 'react';
+import React, { type FC, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { DataPoint } from '../types/DataSource';
 

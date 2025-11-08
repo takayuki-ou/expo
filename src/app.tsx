@@ -1,4 +1,4 @@
-import { type FC, useState } from 'react';
+import React, { type FC, useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -7,17 +7,29 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Platform,
 } from 'react-native';
 import { registerRootComponent } from 'expo';
 import { StatusBar } from 'expo-status-bar';
 
-import { Button } from '@/componets/button';
+import { Button } from '@/components/button';
 import { HeatmapView } from '@/components/HeatmapView';
 import { NotionDataSource } from '@/services/NotionDataSource';
 import { DataSourceType, type DataPoint } from '@/types/DataSource';
 
+/**
+ * プラットフォームに応じたアラート表示
+ */
+const showAlert = (title: string, message: string) => {
+  if (Platform.OS === 'web') {
+    window.alert(`${title}\n\n${message}`);
+  } else {
+    Alert.alert(title, message);
+  }
+};
+
 const App: FC = () => {
-  const [apiKey, setApiKey] = useState<string>('');
+  const [integrationToken, setIntegrationToken] = useState<string>('');
   const [databaseId, setDatabaseId] = useState<string>('');
   const [data, setData] = useState<DataPoint[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -27,25 +39,44 @@ const App: FC = () => {
    * データを取得してヒートマップを表示
    */
   const handleFetchData = async () => {
-    if (!apiKey.trim() || !databaseId.trim()) {
-      Alert.alert('エラー', 'Notion API キーとデータベースIDを入力してください');
+    // Web環境での注意（プロキシサーバー使用）
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm(
+        '⚠️ Web環境で実行中\n\n' +
+        'プロキシサーバー (http://localhost:3001) を使用します。\n' +
+        'サーバーが起動していることを確認してください。\n\n' +
+        '別ターミナルで以下を実行:\n' +
+        '  npm run server\n\n' +
+        '続行しますか?'
+      );
+      if (!confirmed) return;
+    }
+
+    if (!integrationToken.trim() || !databaseId.trim()) {
+      showAlert(
+        'エラー',
+        'Notion Internal Integration TokenとデータベースIDを入力してください'
+      );
       return;
     }
 
     setLoading(true);
     try {
-      // データソースを作成
+      // Internal Integrationデータソースを作成
       const dataSource = new NotionDataSource({
         type: DataSourceType.NOTION,
-        apiKey: apiKey.trim(),
+        integrationToken: integrationToken.trim(),
         databaseId: databaseId.trim(),
         name: 'My Notion Database',
       });
 
-      // 接続テスト
+      // 接続テスト & 権限確認
       const connectionOk = await dataSource.testConnection();
       if (!connectionOk) {
-        Alert.alert('エラー', 'Notionへの接続に失敗しました。API キーとデータベースIDを確認してください');
+        showAlert(
+          'エラー',
+          'Notionへの接続に失敗しました。\n\n以下を確認してください:\n• Integration Tokenが正しいか\n• データベースIDが正しいか\n• IntegrationがデータベースにConnectされているか'
+        );
         setLoading(false);
         return;
       }
@@ -66,10 +97,10 @@ const App: FC = () => {
       );
 
       setData(fetchedData);
-      Alert.alert('成功', `${fetchedData.length}件のデータポイントを取得しました`);
+      showAlert('成功', `${fetchedData.length}件のデータポイントを取得しました`);
     } catch (error) {
       console.error('データ取得エラー:', error);
-      Alert.alert('エラー', 'データの取得に失敗しました: ' + (error as Error).message);
+      showAlert('エラー', 'データの取得に失敗しました: ' + (error as Error).message);
     } finally {
       setLoading(false);
     }
@@ -79,7 +110,7 @@ const App: FC = () => {
    * リセット
    */
   const handleReset = () => {
-    setApiKey('');
+    setIntegrationToken('');
     setDatabaseId('');
     setData([]);
     setIsConnected(false);
@@ -95,19 +126,25 @@ const App: FC = () => {
 
         {/* 設定フォーム */}
         <View style={styles.formContainer}>
-          <Text style={styles.label}>Notion API キー</Text>
+          <Text style={styles.label}>Internal Integration Token</Text>
+          <Text style={styles.helpText}>
+            Notion Internal Integrationで生成されたトークン
+          </Text>
           <TextInput
             style={styles.input}
             placeholder="secret_XXXXXXXXXX..."
             placeholderTextColor="#666"
-            value={apiKey}
-            onChangeText={setApiKey}
+            value={integrationToken}
+            onChangeText={setIntegrationToken}
             autoCapitalize="none"
             autoCorrect={false}
             secureTextEntry={true}
           />
 
           <Text style={styles.label}>データベースID</Text>
+          <Text style={styles.helpText}>
+            ヒートマップ表示したいNotionデータベースのID
+          </Text>
           <TextInput
             style={styles.input}
             placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
@@ -125,6 +162,7 @@ const App: FC = () => {
                 label={loading ? '取得中...' : 'データを取得'}
                 theme="primary"
                 onPress={handleFetchData}
+                disabled={loading}
               />
             ) : (
               <>
@@ -132,8 +170,9 @@ const App: FC = () => {
                   label="再取得"
                   theme="primary"
                   onPress={handleFetchData}
+                  disabled={loading}
                 />
-                <Button label="リセット" onPress={handleReset} />
+                <Button label="リセット" onPress={handleReset} disabled={loading} />
               </>
             )}
           </View>
@@ -164,15 +203,52 @@ const App: FC = () => {
           </View>
         )}
 
+        {/* Web環境での情報 */}
+        {Platform.OS === 'web' && !isConnected && (
+          <View style={styles.infoContainer}>
+            <Text style={styles.infoTitle}>💡 Web環境で動作中</Text>
+            <Text style={styles.infoText}>
+              CORS制限を回避するため、プロキシサーバー経由でNotion APIにアクセスします。
+              {'\n\n'}
+              <Text style={styles.guideBold}>サーバー起動手順:</Text>
+              {'\n\n'}
+              1. 別のターミナルを開く{'\n'}
+              2. 「npm run server」を実行{'\n'}
+              3. サーバーが起動したことを確認{'\n'}
+              4. このページで「データを取得」をクリック
+              {'\n\n'}
+              <Text style={styles.guideBold}>推奨: モバイルアプリとして使用</Text>
+              {'\n'}
+              • より高速で安定した動作{'\n'}
+              • プロキシサーバー不要
+            </Text>
+          </View>
+        )}
+
         {/* 使い方ガイド */}
-        {!isConnected && (
+        {Platform.OS !== 'web' && !isConnected && (
           <View style={styles.guideContainer}>
-            <Text style={styles.guideTitle}>使い方</Text>
+            <Text style={styles.guideTitle}>📝 セットアップガイド</Text>
             <Text style={styles.guideText}>
-              1. Notionで統合を作成してAPI キーを取得{'\n'}
-              2. ヒートマップ表示したいデータベースのIDを取得{'\n'}
-              3. 上記の情報を入力して「データを取得」をタップ{'\n'}
-              4. データベース内のアイテムの作成日がヒートマップに表示されます
+              {'\n'}
+              <Text style={styles.guideBold}>1. Internal Integrationを作成</Text>
+              {'\n'}
+              • Notion設定 → 統合 → 新しい統合を作成{'\n'}
+              • タイプ: Internal Integration を選択{'\n'}
+              • トークンをコピー
+              {'\n\n'}
+              <Text style={styles.guideBold}>2. データベースに接続</Text>
+              {'\n'}
+              • 対象のNotionデータベースを開く{'\n'}
+              • 右上の「...」→ 接続 → 作成した統合を選択{'\n'}
+              • データベースIDをURLからコピー
+              {'\n\n'}
+              <Text style={styles.guideBold}>3. アプリで認証</Text>
+              {'\n'}
+              • 上記フォームにトークンとIDを入力{'\n'}
+              • 「データを取得」をタップ
+              {'\n\n'}
+              ※ Internal Integrationは個人ワークスペース専用です
             </Text>
           </View>
         )}
@@ -216,8 +292,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#fff',
-    marginBottom: 8,
+    marginBottom: 4,
     marginTop: 12,
+  },
+  helpText: {
+    fontSize: 12,
+    color: '#999',
+    marginBottom: 8,
+    fontStyle: 'italic',
   },
   input: {
     backgroundColor: '#1a1a1a',
@@ -271,6 +353,31 @@ const styles = StyleSheet.create({
     color: '#ccc',
     lineHeight: 22,
   },
+  guideBold: {
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  infoContainer: {
+    backgroundColor: '#1a2a3a',
+    borderRadius: 12,
+    padding: 20,
+    marginTop: 12,
+    borderWidth: 2,
+    borderColor: '#0a7ea4',
+  },
+  infoTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#0a7ea4',
+    marginBottom: 12,
+  },
+  infoText: {
+    fontSize: 14,
+    color: '#a8d5e2',
+    lineHeight: 22,
+  },
 });
 
 registerRootComponent(App);
+
+export default App;

@@ -1,4 +1,4 @@
-import { type FC } from "react";
+import React, { type FC } from "react";
 import { StyleSheet, Image, type ImageSourcePropType } from "react-native";
 
 type ImageViewerProps = {
