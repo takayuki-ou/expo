@@ -1,4 +1,4 @@
-import { type FC } from "react";
+import React, { type FC } from "react";
 import { StyleSheet, View, Pressable, Text, type GestureResponderEvent } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 
@@ -6,18 +6,28 @@ type ButtonProps = {
   label: string;
   theme?: "primary" | undefined;
   onPress?: null | ((event: GestureResponderEvent) => void) | undefined;
+  disabled?: boolean;
 };
 
 export const Button: FC<ButtonProps> = (props) => {
+  const { disabled = false } = props;
+
   if (props.theme === "primary") {
     return (
       <View style={styles.buttonContainer}>
         <Pressable
-          style={[styles.button, { backgroundColor: "#007AFF" }]}
+          style={[
+            styles.button,
+            { backgroundColor: "#007AFF" },
+            disabled && styles.buttonDisabled
+          ]}
           onPress={props.onPress}
+          disabled={disabled}
         >
           <FontAwesome name="camera" size={24} color="#fff" style={styles.buttonIcon} />
-          <Text style={styles.buttonLabel}>{props.label}</Text>
+          <Text style={[styles.buttonLabel, disabled && styles.buttonLabelDisabled]}>
+            {props.label}
+          </Text>
         </Pressable>
       </View>
     );
@@ -25,10 +35,13 @@ export const Button: FC<ButtonProps> = (props) => {
   return (
     <View style={styles.buttonContainer}>
       <Pressable
-        style={styles.button}
-        onPress={() => alert("ボタンが押されました")}
+        style={[styles.button, disabled && styles.buttonDisabled]}
+        onPress={props.onPress}
+        disabled={disabled}
       >
-        <Text style={styles.buttonLabel}>{props.label}</Text>
+        <Text style={[styles.buttonLabel, disabled && styles.buttonLabelDisabled]}>
+          {props.label}
+        </Text>
       </Pressable>
     </View>
   );
@@ -51,11 +64,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     flexDirection: "row",
   },
+  buttonDisabled: {
+    opacity: 0.5,
+  },
   buttonIcon: {
     paddingRight: 8,
   },
   buttonLabel: {
     color: "#fff",
     fontSize: 16,
+  },
+  buttonLabelDisabled: {
+    opacity: 0.7,
   },
 });
